@@ -1,0 +1,32 @@
+{
+  "name": "concert-ticket-system",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "NODE_PATH=./src ts-node-dev --respawn ./src/index.ts",
+    "generate-tickets": "NODE_PATH=./src ts-node-dev src/scripts/generate_tickets.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.9.0",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "pdfkit": "^0.17.0",
+    "qrcode": "^1.5.4",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.15.2",
+    "@types/pdfkit": "^0.13.9",
+    "@types/qrcode": "^1.5.5",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.8.3"
+  }
+}
