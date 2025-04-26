@@ -1,12 +1,13 @@
 import { Request, Response } from "express";
 import { supabase } from "services/supabase";
-import { logger } from "utils/logger";
 import { APIErrorResponse, APISuccessResponse } from "types/req-res";
+import { Database } from "types/supabase";
 
 type PartialTicket = {
   ticket_id: string;
   status: string;
   qr_code_data: string;
+  out_count: number;
 };
 
 export const VerifyTicket = async (
@@ -14,7 +15,7 @@ export const VerifyTicket = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const { qrCodeData } = req.body;
+    const { qrCodeData, invalidate } = req.body;
 
     if (!qrCodeData || typeof qrCodeData !== "string") {
       const errorResponse: APIErrorResponse = {
@@ -37,12 +38,12 @@ export const VerifyTicket = async (
     for (const table of tables) {
       const { data, error } = await supabase
         .from(table)
-        .select("ticket_id, status, qr_code_data")
+        .select("ticket_id, status, qr_code_data, out_count")
         .eq("qr_code_data", qrCodeData)
         .single();
 
       if (error && error.code !== "PGRST116") {
-        logger.error(
+        console.error(
           `[VerifyTicket] Failed to query ${table}: ${error.message}`,
         );
         const errorResponse: APIErrorResponse = {
@@ -79,12 +80,12 @@ export const VerifyTicket = async (
       return;
     }
 
-    if (ticket.status !== "active") {
+    if (ticket.status === "used") {
       const errorResponse: APIErrorResponse = {
         success: false,
         error: {
-          message: `Ticket is ${ticket.status}`,
-          details: `This ticket cannot be used as it is already ${ticket.status}`,
+          message: "Ticket already used",
+          details: "This ticket has been fully invalidated and is out of use",
           code: 400,
           hint: "Use a valid, active ticket",
         },
@@ -93,19 +94,58 @@ export const VerifyTicket = async (
       return;
     }
 
+    let updateData: { status: string; used_at?: string; out_count?: number };
+    let successMessage: string;
+
+    if (ticket.status === "active") {
+      updateData = {
+        status: "got_out",
+        out_count: ticket.out_count + 1,
+        used_at: new Date().toISOString(),
+      };
+      successMessage = "Ticket successfully verified for first entry";
+    } else if (ticket.status === "got_out") {
+      if (invalidate) {
+        updateData = {
+          status: "used",
+          used_at: new Date().toISOString(),
+        };
+        successMessage = "Ticket fully invalidated";
+      } else {
+        updateData = {
+          status: "got_out",
+          out_count: ticket.out_count + 1,
+          used_at: new Date().toISOString(),
+        };
+        successMessage = `Ticket re-entered (out_count: ${updateData.out_count})`;
+      }
+    } else {
+      const errorResponse: APIErrorResponse = {
+        success: false,
+        error: {
+          message: "Invalid ticket status",
+          details: `Ticket has an unexpected status: ${ticket.status}`,
+          code: 500,
+          hint: "Contact support",
+        },
+      };
+      res.status(500).json(errorResponse);
+      return;
+    }
+
     const { error: updateError } = await supabase
       .from(tableName)
-      .update({ status: "used", used_at: new Date().toISOString() })
+      .update(updateData)
       .eq("ticket_id", ticket.ticket_id);
 
     if (updateError) {
-      logger.error(
+      console.error(
         `[VerifyTicket] Failed to update ticket ${ticket.ticket_id}: ${updateError.message}`,
       );
       const errorResponse: APIErrorResponse = {
         success: false,
         error: {
-          message: "Failed to invalidate ticket",
+          message: "Failed to update ticket",
           details: updateError.message,
           code: 500,
           hint: "Try again or contact support",
@@ -115,17 +155,21 @@ export const VerifyTicket = async (
       return;
     }
 
-    logger.info(
-      `[VerifyTicket] Ticket ${ticket.ticket_id} verified and invalidated`,
+    console.log(
+      `[VerifyTicket] Ticket ${ticket.ticket_id} updated to ${updateData.status}`,
     );
     const successResponse: APISuccessResponse = {
       success: true,
-      message: "Ticket verified and invalidated",
-      data: { ticket_id: ticket.ticket_id },
+      message: successMessage,
+      data: {
+        ticket_id: ticket.ticket_id,
+        status: updateData.status,
+        out_count: updateData.out_count ?? ticket.out_count,
+      },
     };
     res.status(200).json(successResponse);
   } catch (error: any) {
-    logger.error(`[VerifyTicket] Unexpected error: ${error.message}`);
+    console.error(`[VerifyTicket] Unexpected error: ${error.message}`);
     const errorResponse: APIErrorResponse = {
       success: false,
       error: {

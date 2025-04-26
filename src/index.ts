@@ -1,7 +1,9 @@
 import express from "express";
 import apiRoutes from "./routes/api";
 import { config } from "./config";
-import "dotenv/config";
+import { config as dotenvConfig } from "dotenv";
+
+dotenvConfig();
 
 const app = express();
 app.use(express.json());

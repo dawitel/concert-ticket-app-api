@@ -1,5 +1,9 @@
-import { Config } from "../types/config";
-import "dotenv/config";
+import { Config } from "types/config";
+import { config as dotenvConfig } from "dotenv";
+import * as path from "path";
+
+const envPath = path.resolve(__dirname, "../../.env");
+dotenvConfig({ path: envPath });
 
 function loadConfig(): Config {
   const requiredVars = [
@@ -13,7 +17,7 @@ function loadConfig(): Config {
   for (const key of requiredVars) {
     if (!process.env[key]) {
       throw new Error(
-        `${key} is not set in the environment. Please set it in your .env file.`,
+        `${key} is not set in the environment. Please set it in your .env file at ${envPath}.`,
       );
     }
   }

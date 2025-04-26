@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "NODE_PATH=./src ts-node-dev --respawn ./src/index.ts",
+    "dev": "SUPPRESS_NO_CONFIG_WARNING=1 NODE_PATH=./src ts-node-dev --respawn ./src/index.ts",
     "generate-tickets": "NODE_PATH=./src ts-node-dev src/scripts/generate_tickets.ts",
     "build": "tsc --project tsconfig.json --outDir dist",
     "start": "node -r module-alias/register dist/index.js"
@@ -16,7 +16,6 @@
   "packageManager": "pnpm@10.9.0",
   "dependencies": {
     "@supabase/supabase-js": "^2.49.4",
-    "config": "^3.3.12",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "module-alias": "^2.2.3",
@@ -25,7 +24,6 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
-    "@types/config": "^3.3.5",
     "@types/express": "^5.0.1",
     "@types/node": "^22.15.2",
     "@types/pdfkit": "^0.13.9",

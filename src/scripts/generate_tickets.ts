@@ -1,16 +1,21 @@
-import { supabase } from "services/supabase";
 import QRCode from "qrcode";
 import { randomUUID } from "crypto";
 import PDFDocument from "pdfkit";
 import fs from "fs";
 import { config } from "config";
+import { createClient } from "@supabase/supabase-js";
+import { Database } from "types/supabase";
 
+export const supabase = createClient<Database>(
+  "https://nlvolxlutgwqytskkycw.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sdm9seGx1dGd3cXl0c2treWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1ODMyNjQsImV4cCI6MjA2MTE1OTI2NH0.ilLHj9X3nVRyR6rlGJs51txPetyB6iVKe4N9lxme7ms",
+);
 // Generate unique ticket ID
 const generateTicketId = (): string => randomUUID();
 
 // Generate QR code data
 const generateQRCodeData = (ticketId: string): string =>
-  `${config.API_DOMAIN}/verify/${ticketId}`;
+  `https://concert-ticket-app-api.onrender.com/api/tickets/verify/${ticketId}`;
 
 // Generate tickets for a category
 async function generateTickets(
