@@ -25,7 +25,11 @@ export const VerifyTicket = async (
   try {
     const { qrCodeData, invalidate } = req.body;
 
-    if (!qrCodeData || typeof qrCodeData !== "string") {
+    if (
+      !qrCodeData ||
+      typeof qrCodeData !== "string" ||
+      qrCodeData.trim() === ""
+    ) {
       const errorResponse: APIErrorResponse = {
         success: false,
         error: {
@@ -40,16 +44,23 @@ export const VerifyTicket = async (
     }
 
     const tables = ["special_vip_tickets", "vip_tickets", "regular_tickets"];
-    let ticket: PartialTicket | null = null;
-    let tableName: string | null = null;
 
-    for (const table of tables) {
+    const queryPromises = tables.map(async (table) => {
       const { data, error } = await supabase
         .from(table)
         .select("ticket_id, status, qr_code_data, out_count")
         .eq("qr_code_data", qrCodeData)
-        .single();
+        .maybeSingle();
 
+      return { table, data, error };
+    });
+
+    const queryResults = await Promise.all(queryPromises);
+
+    let ticket: PartialTicket | null = null;
+    let tableName: string | null = null;
+
+    for (const { table, data, error } of queryResults) {
       if (error && error.code !== "PGRST116") {
         console.error(
           `[VerifyTicket] Failed to query ${table}: ${error.message}`,
