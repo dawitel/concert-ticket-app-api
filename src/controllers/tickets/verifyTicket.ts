@@ -10,6 +10,14 @@ type PartialTicket = {
   out_count: number;
 };
 
+function getTicketCategory(tableName: string): string {
+  return tableName
+    .replace(/_/g, " ")
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export const VerifyTicket = async (
   req: Request,
   res: Response,
@@ -165,6 +173,7 @@ export const VerifyTicket = async (
         ticket_id: ticket.ticket_id,
         status: updateData.status,
         out_count: updateData.out_count ?? ticket.out_count,
+        category: getTicketCategory(tableName),
       },
     };
     res.status(200).json(successResponse);
